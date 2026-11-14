@@ -1,0 +1,26 @@
+# Атлас территории
+
+Сайт строит планы и модель из реальных открытых геоданных. Отсутствующие здания, высоты и крыши не синтезируются.
+
+## Источники
+- OpenStreetMap, ODbL: https://www.openstreetmap.org/copyright
+- Overpass API: https://wiki.openstreetmap.org/wiki/Overpass_API
+- AWS Terrain Tiles: https://registry.opendata.aws/terrain-tiles/
+- Декодирование Terrarium: https://github.com/tilezen/joerd/blob/master/docs/formats.md
+- Атрибуции DEM: https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+
+QGIS — инструмент обработки, а не первичная база. Cadmapper использует OSM/NASA/USGS, бесплатный экспорт ограничен 1 км² и требует регистрации; открытый API не подтверждён: https://cadmapper.com/ . Google Earth исключён: правила запрещают реконструкцию 3D из его вывода: https://about.google/brand-resource-center/products-and-services/geo-guidelines/ .
+
+## Критерии качества
+- Источник высоты здания — только числовой тег height, без пересчёта этажей в метры.
+- Отсутствие объекта в OSM не доказывает отсутствие на местности.
+- DEM имеет переменную исходную точность; плотная сетка не повышает точность измерений.
+- Дата загрузки не является датой съёмки.
+- План — векторная тематическая схема, не спутниковая фотография.
+- Публичные API могут ограничивать запросы. При ошибке сайт должен сообщать её и не подменять данные.
+- Для проектной документации необходима отдельная сверка с актуальной топосъёмкой.
+
+## Запуск
+Из этой папки: `node serve.mjs`, затем http://localhost:8080 . Требуется интернет для библиотек, карты и геоданных.
+
+
