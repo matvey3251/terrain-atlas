@@ -5,4 +5,8 @@ for(const failure of [{ok:false,status:502},{ok:true,json:async()=>{throw Error(
 const controller=new AbortController();controller.abort();await assert.rejects(loadOSM(bounds,{signal:controller.signal,storage:null,fetchImpl:()=>{throw Error('must not fetch')}}),{name:'AbortError'});
 const values=new Map();const storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)};await loadOSM(bounds,{storage,endpoints,fetchImpl:async()=>({ok:true,json:async()=>({elements:[]})})});assert.equal((await loadOSM(bounds,{storage,endpoints,fetchImpl:()=>{throw Error('cache should prevent fetch')}})).cached,true);
 console.log('5 OSM loader scenarios passed');
+let seenURL;
+await loadOSM([55.750,37.616,55.752,37.620],{storage:null,endpoints:['https://api.openstreetmap.org/api/0.6/map.json'],fetchImpl:async url=>{seenURL=new URL(url);return {ok:true,json:async()=>({elements:[]})};}});
+assert.equal(seenURL.searchParams.get('bbox'),'37.616,55.75,37.62,55.752');assert.equal(seenURL.searchParams.has('data'),false);
+console.log('Map API bbox ordering passed');
 
