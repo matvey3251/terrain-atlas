@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+import {loadOSM} from './dist/osm-loader.mjs';
+const endpoints=['https://first.example/api','https://second.example/api'];const bounds=[55,37,55.01,37.01];
+for(const failure of [{ok:false,status:502},{ok:true,json:async()=>{throw Error('HTML')}},{ok:true,json:async()=>({remark:'runtime error',elements:[]})}]){let calls=0;const result=await loadOSM(bounds,{endpoints,storage:null,fetchImpl:async(url,options)=>{assert.equal(options.method,'GET');assert.ok(url.includes('?data='));return ++calls===1?failure:{ok:true,json:async()=>({elements:[]})};}});assert.equal(calls,2);assert.equal(result.endpoint,endpoints[1]);}
+const controller=new AbortController();controller.abort();await assert.rejects(loadOSM(bounds,{signal:controller.signal,storage:null,fetchImpl:()=>{throw Error('must not fetch')}}),{name:'AbortError'});
+const values=new Map();const storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)};await loadOSM(bounds,{storage,endpoints,fetchImpl:async()=>({ok:true,json:async()=>({elements:[]})})});assert.equal((await loadOSM(bounds,{storage,endpoints,fetchImpl:()=>{throw Error('cache should prevent fetch')}})).cached,true);
+console.log('5 OSM loader scenarios passed');
+
