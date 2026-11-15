@@ -1,7 +1,7 @@
 export const ENDPOINTS = ['https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.private.coffee/api/interpreter'];
-export function buildQuery(bounds){if(!Array.isArray(bounds)||bounds.length!==4||!bounds.every(Number.isFinite))throw Error('Некорректные границы');return `[out:json][timeout:20][bbox:${bounds.join(',')}];(${['building','highway','landuse','natural','amenity','leisure','waterway'].map(k=>`way[${k}];relation[${k}];`).join('')});out body;>;out skel qt;`;}
+export function buildQuery(bounds){if(!Array.isArray(bounds)||bounds.length!==4||!bounds.every(Number.isFinite))throw Error('Некорректные границы');return `[out:json][timeout:20][bbox:${bounds.join(',')}];(${['building','building:part','highway','landuse','natural','amenity','leisure','waterway'].map(k=>`way[${k}];relation[${k}];`).join('')});out body;>;out skel qt;`;}
 export async function loadOSM(bounds,{signal,onProgress=()=>{},fetchImpl=globalThis.fetch,storage=globalThis.sessionStorage,endpoints=ENDPOINTS,timeoutMs=25000,now=()=>Date.now()}={}){
- signal?.throwIfAborted();const query=buildQuery(bounds),key='atlas-osm-v2:'+bounds.join(',');
+ signal?.throwIfAborted();const query=buildQuery(bounds),key='atlas-osm-v3:'+bounds.join(',');
  try{const hit=JSON.parse(storage?.getItem(key)||'null');if(hit&&now()-Date.parse(hit.downloadedAt)<3600000&&Array.isArray(hit.data?.elements)&&!hit.data.remark)return {...hit,cached:true};}catch{}
  const errors=[];
  for(let i=0;i<endpoints.length;i++){
