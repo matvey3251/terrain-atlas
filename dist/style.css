@@ -2,3 +2,5 @@
 @media(max-width:800px){h1{font-size:30px;margin:12px 0;letter-spacing:-1px}h1 br{display:none}h1 br:after{content:' '}aside>label:first-child{margin:5px 0}aside>p{margin:8px 0}label{margin:8px 0 4px}.primary{margin-top:10px}details{margin-top:8px}#map,#scene{min-height:350px}main{gap:15px}}
 #buildingEditor{display:block;border:1px solid #b7c3b7;border-radius:10px;padding:20px;margin:20px 0;background:#fafbf7}#buildingEditor[hidden]{display:none}#buildingEditor input[type=checkbox]{width:auto}#buildingEditor select{max-width:100%}#buildingEditor button{margin:8px 6px 0 0}#buildingEditor a{overflow-wrap:anywhere}#photoStatus{font-weight:bold}
 
+.landscapeLayers{display:flex;flex-wrap:wrap;gap:12px;border:1px solid #c8d1c4;padding:12px}.landscapeLayers label{display:flex;align-items:center;gap:6px;margin:0}.landscapeLayers input{width:auto;margin:0}
+
