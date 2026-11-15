@@ -12,3 +12,5 @@ for(const key of ['natural','amenity','highway','leisure','barrier'])assert.ok(q
 assert.ok(q.includes('way[area:highway]'));
 console.log('Terrain triangle interpolation and landscape query checks passed');
 
+const {foundationExtension}=await import('./dist/terrain-sample.mjs');assert.equal(foundationExtension(10,[8,10,12],0),2.05);assert.equal(foundationExtension(10,[8,10,12],3),0);assert.equal(foundationExtension(10,[],0),0);assert.equal(foundationExtension(10,[12,13],0),.05);console.log('4 ground contact checks passed');
+
