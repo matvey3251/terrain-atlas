@@ -1,3 +1,10 @@
 import assert from 'node:assert/strict';import {clipSegment,sampledSegment} from './dist/landscape.mjs';
 assert.deepEqual(clipSegment([-5,5],[15,5],10),[[0,5],[10,5]]);assert.equal(clipSegment([-5,-5],[-1,-1],10),null);assert.deepEqual(clipSegment([2,2],[2,8],10),[[2,2],[2,8]]);const pts=sampledSegment([0,0],[13,0]);assert.equal(pts.length,4);assert.ok(pts.slice(1).every((p,i)=>Math.hypot(p[0]-pts[i][0],p[1]-pts[i][1])<=5));console.log('5 landscape clipping and sampling checks passed');
+import {sourceSize,treeDimensions} from './dist/landscape.mjs';
+assert.equal(sourceSize('6,5 m'),6.5);assert.equal(sourceSize('10 ft'),3.048);assert.equal(sourceSize("10'"),3.048);assert.equal(sourceSize('0'),null);assert.equal(sourceSize('unknown'),null);
+assert.deepEqual(treeDimensions({height:'12',diameter_crown:'8'},20,10),{h:12,d:8,estimated:false});assert.deepEqual(treeDimensions({height:'12'},20,10),{h:12,d:10,estimated:true});assert.deepEqual(treeDimensions({diameter_crown:'8'},20,10),{h:20,d:8,estimated:true});assert.deepEqual(treeDimensions({}),{h:6,d:3,estimated:true});console.log('9 tree dimensions and units checks passed');
+import {ribbonVertices} from './dist/landscape.mjs';
+const ribbon=ribbonVertices([[1,5],[9,5]],2,10,(x,y)=>x+y);assert.ok(ribbon.length>0&&ribbon.length%9===0);for(let i=0;i<ribbon.length;i+=3){const x=ribbon[i]+5,y=5-ribbon[i+2];assert.ok(x>=0&&x<=10&&y>=0&&y<=10);assert.ok(Math.abs(ribbon[i+1]-(x+y+.02))<1e-8);}assert.deepEqual(ribbonVertices([[-10,-10],[-5,-5]],2,10,()=>0),[]);assert.deepEqual(ribbonVertices([[2,2],[2,2]],2,10,()=>0),[]);assert.equal(Math.max(...ribbon.filter((v,i)=>i%3===2))-Math.min(...ribbon.filter((v,i)=>i%3===2)),2);console.log('5 ribbon width, draping, bounds and degenerate checks passed');
+
+const solid=ribbonVertices([[1,5],[9,5]],2,10,()=>0,.15),heights=solid.filter((v,i)=>i%3===1);assert.ok(Math.abs(Math.min(...heights)-.02)<1e-9);assert.ok(Math.abs(Math.max(...heights)-.17)<1e-9);assert.ok(solid.length>ribbon.length);assert.ok(Math.max(...ribbonVertices([[1,5],[9,5]],2,10,()=>0,4).filter((v,i)=>i%3===1))<=.52);console.log('4 solid curb top, bottom, walls and limit checks passed');
 
