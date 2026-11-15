@@ -7,3 +7,5 @@ export function sampleTerrain(grid,side,x,y){
  return (b>=a?h00*(1-b)+h01*(b-a)+h11*a:h00*(1-a)+h10*(a-b)+h11*b)-grid.min;
 }
 
+export function foundationExtension(base,heights,minHeight=0){if(minHeight!==0||!Number.isFinite(base))return 0;const ground=heights.filter(Number.isFinite);return ground.length?Math.max(0,base-ground.reduce((a,b)=>Math.min(a,b),Infinity))+.05:0;}
+
