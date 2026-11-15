@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {resolveBuilding as r} from './dist/height-model.mjs';
+assert.equal(r({height:'12', 'building:levels':'9'}).height,12);
+assert.equal(r({height:'12'},{customHeight:15}).height,15);
+assert.equal(r({'building:levels':'4'}).height,12);
+assert.equal(r({'building:levels':'4','roof:height':'2.5'}).height,14.5);
+assert.equal(r({'building:levels':'0','roof:height':'3'}).height,3);
+assert.equal(r({}).height,9);
+assert.equal(r({},{defaultHeight:7}).height,7);
+assert.equal(r({height:'bad'}).height,9);assert.ok(r({height:'bad'}).warnings.length);
+assert.equal(r({'building:levels':'3'},{allowEstimate:false}).height,null);
+assert.equal(r({height:'bad'},{allowEstimate:false}).reason,'invalid_height');
+assert.equal(r({height:'12','building:min_level':'2'}).minHeight,6);
+assert.equal(r({height:'12','building:min_level':'2'}).estimated,true);
+assert.equal(r({height:'12','building:min_level':'2'},{allowEstimate:false}).minHeight,0);
+assert.equal(r({height:'12',min_height:'3','building:min_level':'2'}).minHeight,3);
+assert.equal(r({height:'12',min_height:'12'}).reason,'min_height_conflict');
+assert.equal(r({height:'12',min_height:'bad'}).reason,'invalid_min_height');
+assert.equal(r({height:'12'},{customHeight:0}).reason,'invalid_custom_height');
+assert.equal(r({'building:levels':'2','roof:levels':'2'}).height,6);
+assert.ok(r({'building:levels':'2','roof:levels':'2'}).warnings.length);
+assert.equal(r({height:'20 ft'}).height,6.096);
+assert.equal(r({'building:levels':'2.5'},{floorHeight:4}).height,10);
+console.log('21 building height model assertions passed');
+
