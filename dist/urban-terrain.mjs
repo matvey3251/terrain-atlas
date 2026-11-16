@@ -18,7 +18,23 @@ export function createUrbanTerrain({pads,side,rawElevation,clip,triangulate,blen
  function elevation(x,y){x=Math.max(0,Math.min(side,x));y=Math.max(0,Math.min(side,y));const i=Math.min(N-1,Math.floor(x/step)),j=Math.min(N-1,Math.floor(y/step));for(const [a,b,c]of cells.get(j*N+i)||[]){const det=(b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1]);if(Math.abs(det)<1e-12)continue;const u=((b[1]-c[1])*(x-c[0])+(c[0]-b[0])*(y-c[1]))/det,v=((c[1]-a[1])*(x-c[0])+(a[0]-c[0])*(y-c[1]))/det,w=1-u-v;if(Math.min(u,v,w)>=-1e-7)return u*a[2]+v*b[2]+w*c[2];}return grade(x,y);}
 
  function nearbyTriangles(box){const result=[];const x0=Math.max(0,Math.floor(box[0]/step)),x1=Math.min(N-1,Math.floor(box[2]/step)),y0=Math.max(0,Math.floor(box[1]/step)),y1=Math.min(N-1,Math.floor(box[3]/step));for(let j=y0;j<=y1;j++)for(let i=x0;i<=x1;i++)result.push(...cells.get(j*N+i)||[]);return result;}
- function drapePolygon(poly,offset=0){const out=[];for(const tri of nearbyTriangles(bbox(poly))){const ring=tri.map(v=>[v[0],v[1]]);ring.push(ring[0]);for(const piece of clip.intersection(poly,[ring]))for(const t of triangulate(piece))for(const [x,y]of t)out.push(x-side/2,elevation(x,y)+offset,side/2-y);}return out;}
+ function drapePolygon(poly,offset=0){
+  const out=[];
+  // Triangulate holes once; intersect convex triangles without a general polygon sweep.
+  for(const subject of triangulate(poly))for(const terrain of nearbyTriangles(bbox([subject]))){
+   let points=subject;const cross=(a,b,p)=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);
+   const orientation=Math.sign(cross(terrain[0],terrain[1],terrain[2]));if(!orientation)continue;
+   for(let edge=0;edge<3&&points.length;edge++){
+    const a=terrain[edge],b=terrain[(edge+1)%3],input=points;points=[];
+    let prev=input.at(-1),dp=orientation*cross(a,b,prev);
+    for(const current of input){const dc=orientation*cross(a,b,current),inside=dc>=-1e-10,wasInside=dp>=-1e-10;
+     if(inside!==wasInside){const t=dp/(dp-dc);points.push([prev[0]+t*(current[0]-prev[0]),prev[1]+t*(current[1]-prev[1])]);}
+     if(inside)points.push(current);prev=current;dp=dc;
+    }
+   }
+   for(let i=1;i+1<points.length;i++){const triangle=[points[0],points[i],points[i+1]];if(Math.abs(cross(...triangle))<1e-10)continue;for(const [x,y]of triangle)out.push(x-side/2,elevation(x,y)+offset,side/2-y);}
+  }return out;
+ }
  function drapePolyline(coords,offset=0){const out=[];for(let k=1;k<coords.length;k++){const a=coords[k-1],b=coords[k],dx=b[0]-a[0],dy=b[1]-a[1],ts=[0,1];for(const tri of nearbyTriangles([Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])]))for(let i=0;i<3;i++){const c=tri[i],d=tri[(i+1)%3],ex=d[0]-c[0],ey=d[1]-c[1],det=dx*ey-dy*ex;if(Math.abs(det)<1e-12)continue;const cx=c[0]-a[0],cy=c[1]-a[1],t=(cx*ey-cy*ex)/det,u=(cx*dy-cy*dx)/det;if(t>1e-9&&t<1-1e-9&&u>=-1e-9&&u<=1+1e-9)ts.push(t);}ts.sort((a,b)=>a-b);let last=-1;for(const t of ts){if(t-last<1e-9)continue;last=t;const x=a[0]+dx*t,y=a[1]+dy*t;if(x<0||x>side||y<0||y>side)continue;const v=[x-side/2,elevation(x,y)+offset,side/2-y];if(!out.length||Math.hypot(v[0]-out.at(-1)[0],v[2]-out.at(-1)[2])>1e-8)out.push(v);}}return out;}
  let maximumSlope=0,maxCutFill=0;for(const triangles of cells.values())for(const [a,b,c]of triangles){for(const v of [a,b,c])maxCutFill=Math.max(maxCutFill,Math.abs(v[2]-rawElevation(v[0],v[1])));const dx1=b[0]-a[0],dy1=b[1]-a[1],dx2=c[0]-a[0],dy2=c[1]-a[1],det=dx1*dy2-dx2*dy1;if(Math.abs(det)>1e-10){const dz1=b[2]-a[2],dz2=c[2]-a[2];maximumSlope=Math.max(maximumSlope,Math.hypot((dz1*dy2-dz2*dy1)/det,(dx1*dz2-dx2*dz1)/det));}}
  return {positions,elevation,padHeights,drapePolygon,drapePolyline,stats:{pads:pads.length,groups:groups.length,triangles:positions.length/9,errors,maximumSlope,maxCutFill,transitionWidths:groups.map(g=>g.transition)}};
