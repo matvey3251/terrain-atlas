@@ -1,0 +1,2 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import {crc32,makeZip} from './dist/zip-store.mjs';assert.equal(crc32(new TextEncoder().encode('123456789')),0xcbf43926);const blob=makeZip([{name:'layer.geojson',data:'{"type":"FeatureCollection","features":[]}'},{name:'README.txt',data:'Проверка слоёв'}]);fs.writeFileSync('zip-roundtrip-test.zip',new Uint8Array(await blob.arrayBuffer()));console.log('ZIP CRC32 reference vector passed');
+
