@@ -10,3 +10,5 @@ await loadOSM([55.750,37.616,55.752,37.620],{storage:null,endpoints:['https://ap
 assert.equal(seenURL.searchParams.get('bbox'),'37.616,55.75,37.62,55.752');assert.equal(seenURL.searchParams.has('data'),false);
 console.log('Map API bbox ordering passed');
 
+let fallbackCalls=[];const recovered=await loadOSM([55.75,37.61,55.752,37.615],{storage:null,fetchImpl:async url=>{fallbackCalls.push(url);return url.includes('map.json')?{ok:true,json:async()=>({elements:[]})}:{ok:false,status:502};}});assert.equal(fallbackCalls.length,3);assert.ok(recovered.endpoint.endsWith('map.json'));fallbackCalls=[];await assert.rejects(loadOSM([55.7,37.6,55.8,37.7],{storage:null,fetchImpl:async url=>{fallbackCalls.push(url);return {ok:false,status:502};}}));assert.equal(fallbackCalls.length,2);assert.ok(fallbackCalls.every(url=>!url.includes('map.json')));console.log('Automatic fallback and large-area limit checks passed');
+
