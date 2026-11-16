@@ -1,0 +1,7 @@
+export const DEFAULT_PLAN={mode:'general',layers:{water:false,roads:false,green:false,zones:false,labels:false,pedestrian:false}};
+export function readPlanPreferences(){try{const p=JSON.parse(localStorage.getItem('atlas-plan-preferences')||'null');return {mode:p?.mode==='black'?'black':'general',layers:Object.fromEntries(Object.keys(DEFAULT_PLAN.layers).map(k=>[k,p?.layers?.[k]===true]))};}catch{return structuredClone(DEFAULT_PLAN);}}
+export function writePlanPreferences(p){try{localStorage.setItem('atlas-plan-preferences',JSON.stringify(p));}catch{}}
+function open(){return new Promise((resolve,reject)=>{const r=indexedDB.open('atlas-project',1);r.onupgradeneeded=()=>r.result.createObjectStore('projects');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+export async function saveProject(value){const db=await open();try{return await new Promise((resolve,reject)=>{const tx=db.transaction('projects','readwrite');tx.objectStore('projects').put({...value,schema:1},'current');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});}finally{db.close();}}
+export async function readProject(){const db=await open();try{return await new Promise((resolve,reject)=>{const tx=db.transaction('projects','readonly'),r=tx.objectStore('projects').get('current');r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error);});}finally{db.close();}}
+
