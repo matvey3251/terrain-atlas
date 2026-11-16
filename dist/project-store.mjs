@@ -1,4 +1,4 @@
-export const DEFAULT_PLAN={mode:'general',layers:{water:false,roads:false,green:false,zones:false,labels:false,pedestrian:false}};
+export const DEFAULT_PLAN={mode:'general',layers:{black:false,water:false,roads:false,green:false,zones:false,labels:false,pedestrian:false}};
 export function readPlanPreferences(){try{const p=JSON.parse(localStorage.getItem('atlas-plan-preferences')||'null');return {mode:p?.mode==='black'?'black':'general',layers:Object.fromEntries(Object.keys(DEFAULT_PLAN.layers).map(k=>[k,p?.layers?.[k]===true]))};}catch{return structuredClone(DEFAULT_PLAN);}}
 export function writePlanPreferences(p){try{localStorage.setItem('atlas-plan-preferences',JSON.stringify(p));}catch{}}
 function open(){return new Promise((resolve,reject)=>{const r=indexedDB.open('atlas-project',1);r.onupgradeneeded=()=>r.result.createObjectStore('projects');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
