@@ -14,4 +14,14 @@ const unaligned=createUrbanTerrain({...options,cellSize:5,triangulate:rectangula
 
 const adaptiveOptions={...options,side:100,cellSize:5,rawElevation:(x,y)=>x*.3,pads:[{key:'slope',poly:square(30,30,50,50)}]};const fixed=createUrbanTerrain({...adaptiveOptions,adaptive:false}),wide=createUrbanTerrain({...adaptiveOptions,adaptive:true});assert.ok(wide.stats.transitionWidths[0]>4);assert.ok(wide.stats.maximumSlope<fixed.stats.maximumSlope);assert.ok(wide.stats.maxCutFill>0);
 const ribbon=wide.drapePolygon(square(10,40,70,42),.15);assert.ok(ribbon.length>0);for(let i=0;i<ribbon.length;i+=9){const x=(ribbon[i]+ribbon[i+3]+ribbon[i+6])/3+50,y=50-(ribbon[i+2]+ribbon[i+5]+ribbon[i+8])/3,h=(ribbon[i+1]+ribbon[i+4]+ribbon[i+7])/3;assert.ok(Math.abs(h-wide.elevation(x,y)-.15)<1e-7);}const line=wide.drapePolyline([[10,40],[70,40]],.15);assert.ok(line.length>2);for(const [x,h,z]of line)assert.ok(Math.abs(h-wide.elevation(x+50,50-z)-.15)<1e-8);console.log('Adaptive grading reduces synthetic slope and draping matches exact TIN at triangle interiors');
+// Two pads on an inconsistent DEM must not create a steep two-metre trench.
+const coordinated=createUrbanTerrain({...options,adaptive:true,rawElevation:x=>x<13?0:12,pads:[{key:'a',poly:square(4,4,12,12)},{key:'b',poly:square(14,4,22,12)}]});
+assert.ok(Math.abs(coordinated.padHeights.get('a')-coordinated.padHeights.get('b'))<=.16001);
+for(let x=12;x<=14;x+=.1){const h=coordinated.elevation(x,8);assert.ok(h>=Math.min(...coordinated.padHeights.values())-1e-6);assert.ok(h<=Math.max(...coordinated.padHeights.values())+1e-6);}
+console.log('Coordinated nearby pad elevations avoid artificial trenches');
+const manyPads=Array.from({length:24},(_,i)=>({key:String(i),poly:square(i*3,2,i*3+3,5)}));
+const many=createUrbanTerrain({...options,side:80,cellSize:8,adaptive:true,rawElevation:x=>Math.sin(x)*30,pads:manyPads});
+const manyHeights=[...many.padHeights.values()];assert.ok(Math.max(...manyHeights)-Math.min(...manyHeights)<1e-8);
+const touching=createUrbanTerrain({...options,adaptive:true,rawElevation:x=>x,pads:[{key:'a',poly:square(2,2,8,8)},{key:'b',poly:square(8,8,16,16)}]});assert.ok(Math.abs(touching.padHeights.get('a')-touching.padHeights.get('b'))<1e-8);
+console.log('Many touching pads and point-contact groups have compatible elevations');
 
