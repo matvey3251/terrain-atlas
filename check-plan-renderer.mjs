@@ -4,4 +4,16 @@ const fake=()=>{const calls=[];const ctx=new Proxy({measureText:t=>({width:t.len
 const shape={properties:{building:'yes'},geometry:{type:'Polygon',coordinates:[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}};const config={features:[shape],bounds:[0,0,2,2],side:200,mode:'black'};const a=fake(),b=fake();renderPlan(a,{...config,metadata:true,layers:{green:true,roads:true}});renderPlan(b,{...config,metadata:false,transparent:true});const positions=c=>c.calls.filter(x=>['moveTo','lineTo'].includes(x[0]));assert.deepEqual(positions(a),positions(b));assert.ok(b.calls.some(x=>x[0]==='clearRect'));assert.ok(!b.calls.some(x=>x[0]==='fillRect'));assert.equal(a.calls.filter(x=>x[0]==='fill').length,b.calls.filter(x=>x[0]==='fill').length);assert.ok(matchesLayer(f({building:'yes','building:part':'no'}),'black'));assert.ok(!matchesLayer(f({highway:'street_lamp'}),'roads'));assert.ok(!matchesLayer(f({highway:'footway'}),'roads'));console.log('Stable export extent, transparency, black mode and road classification passed');
 
 const overlay=fake(),base=fake();renderPlan(overlay,{...config,mode:"general",metadata:false,layers:{black:true}});renderPlan(base,{...config,mode:"general",metadata:false});assert.equal(overlay.calls.filter(x=>x[0]==="fill").length,base.calls.filter(x=>x[0]==="fill").length+1);console.log("Schwarz overlay adds building fill over general plan");
+const junctionStrokes=[];const junctionCtx=new Proxy({measureText:()=>({width:0}),stroke(){junctionStrokes.push({color:this.strokeStyle,width:this.lineWidth,cap:this.lineCap,join:this.lineJoin})}},{get:(o,k)=>k in o?o[k]:()=>{},set:(o,k,v)=>(o[k]=v,true)});
+const road=(coords,props={})=>({properties:{highway:'residential',...props},geometry:{type:'LineString',coordinates:coords}});
+renderPlan({width:1600,height:1800,getContext:()=>junctionCtx},{bounds:[0,0,2,2],side:200,metadata:false,features:[road([[0,1],[1,1]]),road([[1,0],[1,1]])]});
+assert.deepEqual(junctionStrokes.map(s=>s.color),['#60666a','#60666a','#fff','#fff'],'All road casings must precede all interiors so shared nodes have no false seam');
+assert.ok(junctionStrokes.every(s=>s.cap==='round'&&s.join==='round'));
+console.log('Connected road casing/interior symbol levels and round joins pass');
+const {labelAnchor}=await import('./dist/plan-renderer.mjs');
+const donut={properties:{natural:'water',name:'Lake'},geometry:{type:'MultiPolygon',coordinates:[[[[0,0],[2,0],[2,2],[0,2],[0,0]],[[.8,.8],[1.2,.8],[1.2,1.2],[.8,1.2],[.8,.8]]]]}};
+const water=fake();renderPlan(water,{bounds:[0,0,2,2],side:200,features:[donut],isolated:'water',metadata:false});assert.ok(water.calls.some(x=>x[0]==='fill'&&x[1]==='evenodd'));assert.equal(water.calls.filter(x=>x[0]==='closePath').length,2);
+const anchor=labelAnchor(donut,[0,0,2,2]);assert.ok(anchor&&!(anchor[0]>.8&&anchor[0]<1.2&&anchor[1]>.8&&anchor[1]<1.2));assert.deepEqual(labelAnchor(road([[-3,1],[3,1]]),[0,0,2,2]),[1,1]);
+const bad=fake();renderPlan(bad,{bounds:[0,0,2,2],side:200,metadata:false,features:[road([[NaN,0],[1,1]])]});assert.equal(bad.calls.filter(x=>x[0]==='lineTo').length,0);
+console.log('Island holes, interior label anchor, clipped line labels and non-finite geometry pass');
 
