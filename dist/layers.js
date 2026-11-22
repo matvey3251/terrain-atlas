@@ -1,6 +1,6 @@
 import {auditPlan} from './plan-audit.mjs';
 import {georeferenceFiles} from './export-georef.mjs';
-import {renderPlan,layerDefs,filterLayer} from './plan-renderer.mjs?v=20261120-quality';
+import {renderPlan,layerDefs,filterLayer} from './plan-renderer.mjs?v=20261122-junction';
 import {readProject,readPlanPreferences} from './project-store.mjs';
 import {makeZip} from './zip-store.mjs';
 const $=id=>document.getElementById(id);let project=null,previewKey='base',busy=false;
