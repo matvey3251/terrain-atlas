@@ -16,4 +16,16 @@ const water=fake();renderPlan(water,{bounds:[0,0,2,2],side:200,features:[donut],
 const anchor=labelAnchor(donut,[0,0,2,2]);assert.ok(anchor&&!(anchor[0]>.8&&anchor[0]<1.2&&anchor[1]>.8&&anchor[1]<1.2));assert.deepEqual(labelAnchor(road([[-3,1],[3,1]]),[0,0,2,2]),[1,1]);
 const bad=fake();renderPlan(bad,{bounds:[0,0,2,2],side:200,metadata:false,features:[road([[NaN,0],[1,1]])]});assert.equal(bad.calls.filter(x=>x[0]==='lineTo').length,0);
 console.log('Island holes, interior label anchor, clipped line labels and non-finite geometry pass');
+const junctionCanvas=fake();const area={properties:{'area:highway':'footway'},geometry:{type:'Polygon',coordinates:[[[.4,.4],[1.6,.4],[1.6,1.6],[.4,1.6],[.4,.4]],[[.8,.8],[.8,1.2],[1.2,1.2],[1.2,.8],[.8,.8]]]}};const junctionRoad={properties:{highway:'footway'},geometry:{type:'LineString',coordinates:[[0,1],[2,1]]}};
+renderPlan(junctionCanvas,{features:[junctionRoad,area],bounds:[0,0,2,2],side:200,isolated:'pedestrian',metadata:false});
+const paint=junctionCanvas.calls.filter(x=>['fill','stroke'].includes(x[0]));assert.equal(paint.at(-1)[0],'fill','Known junctionRoad area interiors cover same-level axis casing');assert.equal(paint.at(-1)[1],'evenodd','Island holes are preserved');
+const bridgeCanvas=fake();renderPlan(bridgeCanvas,{features:[area,{...junctionRoad,properties:{highway:'footway',bridge:'yes',layer:'1'}}],bounds:[0,0,2,2],side:200,isolated:'pedestrian',metadata:false});const bridgePaint=bridgeCanvas.calls.filter(x=>['fill','stroke'].includes(x[0]));assert.equal(bridgePaint.at(-1)[0],'stroke','Higher bridge is drawn after ground area fill');console.log('Road areas mask same-level interior seams and preserve islands and bridges');
+
+const {mergeRoadAreas}=await import('./dist/plan-renderer.mjs');const pc=(await import('./dist/polygon-clipping.umd.min.js')).default;
+const square=(x0,y0,x1,y1)=>[[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]]],rec=(poly,level=0,key='roads')=>({poly,level,key,color:'#60666a',base:true});
+const joined=mergeRoadAreas([rec(square(0,0,1,1)),rec(square(1,0,2,1))],pc);assert.equal(joined.length,1);assert.equal(joined[0].poly[0].length,5,'Shared boundary removed by union');
+assert.equal(mergeRoadAreas([rec(square(0,0,1,1)),rec(square(1,0,2,1),1)],pc).length,2);
+assert.equal(mergeRoadAreas([rec(square(0,0,1,1)),rec(square(1,0,2,1),0,'pedestrian')],pc).length,2);
+const holed=[square(0,0,3,3)[0],square(1,1,2,2)[0]];const keepHole=mergeRoadAreas([rec(holed),rec(square(3,0,4,3))],pc);assert.equal(keepHole[0].poly.length,2);
+let warned=false;const originals=[rec(square(0,0,1,1)),rec(square(1,0,2,1))];assert.deepEqual(mergeRoadAreas(originals,{union(){throw Error('bad')}},()=>warned=true),originals);assert.ok(warned);console.log('Area union removes shared seams, preserves holes/levels/categories and fails safely');
 
