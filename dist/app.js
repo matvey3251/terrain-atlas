@@ -1,5 +1,5 @@
 import {sceneManifest} from './scene-manifest.mjs';
-import {renderPlan} from './plan-renderer.mjs?v=20261120-quality';
+import {renderPlan} from './plan-renderer.mjs?v=20261122-junction';
 import {saveProject,readProject,readPlanPreferences,writePlanPreferences} from './project-store.mjs';
 import {smoothUrbanGrid} from './urban-baseline.mjs';
 import {createUrbanTerrainAsync} from './urban-terrain.mjs?v=20261116-grading';
