@@ -1,12 +1,12 @@
 import {auditPlan} from './plan-audit.mjs';
 import {georeferenceFiles} from './export-georef.mjs';
-import {renderPlan,layerDefs,filterLayer} from './plan-renderer.mjs?v=20261122-junction';
-import {readProject,readPlanPreferences} from './project-store.mjs';
+import {renderPlan,layerDefs,filterLayer} from './plan-renderer.mjs?v=20261123-clean';
+import {readProject,readPlanPreferences} from './project-store.mjs?v=20261123-clean';
 import {makeZip} from './zip-store.mjs';
 const $=id=>document.getElementById(id);let project=null,previewKey='base',busy=false;
 const canvas=document.createElement('canvas');canvas.width=1600;canvas.height=1800;
 function save(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-function options(key){return {...project,isolated:key,mode:key==='black'?'black':'general',transparent:$('exportTransparent').checked,metadata:$('exportMetadata').checked};}
+function options(key){return {...project,estimatedWidths:readPlanPreferences().estimatedWidths,isolated:key,mode:key==='black'?'black':'general',transparent:$('exportTransparent').checked,metadata:$('exportMetadata').checked};}
 function draw(target,key){renderPlan(target,options(key));if(!$('exportMetadata').checked){const c=target.getContext('2d');c.font='16px Arial';c.fillStyle='#35434b';c.fillText('© OpenStreetMap contributors · ODbL',50,target.height-30);}}
 function preview(key=previewKey){if(!project)return;previewKey=key;$('previewTitle').textContent=layerDefs.find(d=>d.key===key)?.name||key;draw($('layerPreview'),key);}
 function chosen(){return [...document.querySelectorAll('[data-export-layer]:checked')].map(x=>x.dataset.exportLayer);}
