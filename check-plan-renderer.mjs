@@ -6,7 +6,7 @@ const shape={properties:{building:'yes'},geometry:{type:'Polygon',coordinates:[[
 const overlay=fake(),base=fake();renderPlan(overlay,{...config,mode:"general",metadata:false,layers:{black:true}});renderPlan(base,{...config,mode:"general",metadata:false});assert.equal(overlay.calls.filter(x=>x[0]==="fill").length,base.calls.filter(x=>x[0]==="fill").length+1);console.log("Schwarz overlay adds building fill over general plan");
 const junctionStrokes=[];const junctionCtx=new Proxy({measureText:()=>({width:0}),stroke(){junctionStrokes.push({color:this.strokeStyle,width:this.lineWidth,cap:this.lineCap,join:this.lineJoin})}},{get:(o,k)=>k in o?o[k]:()=>{},set:(o,k,v)=>(o[k]=v,true)});
 const road=(coords,props={})=>({properties:{highway:'residential',...props},geometry:{type:'LineString',coordinates:coords}});
-renderPlan({width:1600,height:1800,getContext:()=>junctionCtx},{bounds:[0,0,2,2],side:200,metadata:false,features:[road([[0,1],[1,1]]),road([[1,0],[1,1]])]});
+renderPlan({width:1600,height:1800,getContext:()=>junctionCtx},{bounds:[0,0,2,2],side:200,estimatedWidths:true,metadata:false,features:[road([[0,1],[1,1]]),road([[1,0],[1,1]])]});
 assert.deepEqual(junctionStrokes.map(s=>s.color),['#60666a','#60666a','#fff','#fff'],'All road casings must precede all interiors so shared nodes have no false seam');
 assert.ok(junctionStrokes.every(s=>s.cap==='round'&&s.join==='round'));
 console.log('Connected road casing/interior symbol levels and round joins pass');
@@ -18,7 +18,7 @@ const bad=fake();renderPlan(bad,{bounds:[0,0,2,2],side:200,metadata:false,featur
 console.log('Island holes, interior label anchor, clipped line labels and non-finite geometry pass');
 const junctionCanvas=fake();const area={properties:{'area:highway':'footway'},geometry:{type:'Polygon',coordinates:[[[.4,.4],[1.6,.4],[1.6,1.6],[.4,1.6],[.4,.4]],[[.8,.8],[.8,1.2],[1.2,1.2],[1.2,.8],[.8,.8]]]}};const junctionRoad={properties:{highway:'footway'},geometry:{type:'LineString',coordinates:[[0,1],[2,1]]}};
 renderPlan(junctionCanvas,{features:[junctionRoad,area],bounds:[0,0,2,2],side:200,isolated:'pedestrian',metadata:false});
-const paint=junctionCanvas.calls.filter(x=>['fill','stroke'].includes(x[0]));assert.equal(paint.at(-1)[0],'fill','Known junctionRoad area interiors cover same-level axis casing');assert.equal(paint.at(-1)[1],'evenodd','Island holes are preserved');
+const paint=junctionCanvas.calls.filter(x=>['fill','stroke'].includes(x[0]));assert.ok(paint.some(x=>x[0]==='fill'&&x[1]==='evenodd'),'Island holes are preserved');
 const bridgeCanvas=fake();renderPlan(bridgeCanvas,{features:[area,{...junctionRoad,properties:{highway:'footway',bridge:'yes',layer:'1'}}],bounds:[0,0,2,2],side:200,isolated:'pedestrian',metadata:false});const bridgePaint=bridgeCanvas.calls.filter(x=>['fill','stroke'].includes(x[0]));assert.equal(bridgePaint.at(-1)[0],'stroke','Higher bridge is drawn after ground area fill');console.log('Road areas mask same-level interior seams and preserve islands and bridges');
 
 const {mergeRoadAreas}=await import('./dist/plan-renderer.mjs');const pc=(await import('./dist/polygon-clipping.umd.min.js')).default;
@@ -28,4 +28,10 @@ assert.equal(mergeRoadAreas([rec(square(0,0,1,1)),rec(square(1,0,2,1),1)],pc).le
 assert.equal(mergeRoadAreas([rec(square(0,0,1,1)),rec(square(1,0,2,1),0,'pedestrian')],pc).length,2);
 const holed=[square(0,0,3,3)[0],square(1,1,2,2)[0]];const keepHole=mergeRoadAreas([rec(holed),rec(square(3,0,4,3))],pc);assert.equal(keepHole[0].poly.length,2);
 let warned=false;const originals=[rec(square(0,0,1,1)),rec(square(1,0,2,1))];assert.deepEqual(mergeRoadAreas(originals,{union(){throw Error('bad')}},()=>warned=true),originals);assert.ok(warned);console.log('Area union removes shared seams, preserves holes/levels/categories and fails safely');
+
+const {outsideRoadAreas}=await import('./dist/plan-renderer.mjs');const segments=outsideRoadAreas([[0,1],[2,1]],[area.geometry.coordinates]);assert.deepEqual(segments,[[[0,1],[.4,1]],[[.8,1],[1.2,1]],[[1.6,1],[2,1]]]);
+assert.equal(matchesLayer({properties:{leisure:'park'},geometry:{type:'Polygon',coordinates:square(0,0,1,1)}},'green'),false);assert.ok(matchesLayer({properties:{leisure:'park',landuse:'grass'},geometry:{type:'Polygon',coordinates:square(0,0,1,1)}},'green'));
+junctionStrokes.length=0;renderPlan({width:1600,height:1800,getContext:()=>junctionCtx},{bounds:[0,0,2,2],side:200,metadata:false,features:[road([[0,1],[1,1]])]});assert.equal(junctionStrokes.length,1);assert.equal(junctionStrokes[0].width,1.2);console.log('Unknown widths are single lines; area clipping preserves islands; park boundary is not grass');
+
+junctionStrokes.length=0;renderPlan({width:1600,height:1800,getContext:()=>junctionCtx},{bounds:[0,0,2,2],side:200,metadata:false,features:[road([[0,1],[1,1]],{width:'10 ft'})]});assert.equal(junctionStrokes.length,2);assert.ok(Math.abs(junctionStrokes[1].width-3.048*7.5)<1e-8);console.log('Explicit imperial width retains measured-width symbol');
 
