@@ -1,3 +1,4 @@
+import {ribbonPolygons} from './plan-road-geometry.mjs';
 import {pointInPolygon,parseMeters} from './buildings.mjs';
 import {validPolygon,zoneColor} from './geo.mjs';
 export const LAYERS={water:{name:'Вода',color:'#609fc0',description:'Водоёмы и водотоки OSM'},roads:{name:'Дорожная схема',color:'#c48b51',description:'Дороги; без ширины — осевая линия'},green:{name:'Озеленение',color:'#72a17a',description:'Зелёные территории и нанесённые деревья'},zones:{name:'Функциональное использование',color:'#ba9a71',description:'Использование OSM, не юридические зоны ПЗЗ'},labels:{name:'Подписи объектов',color:'#40566c',description:'Названия и адреса из OSM'},pedestrian:{name:'Пешеходная инфраструктура',color:'#a479b0',description:'Тропы, тротуары, велодорожки и переходы'}};
@@ -23,18 +24,22 @@ export function mergeRoadAreas(records,clip,onError=()=>{}){
 
 export function outsideRoadAreas(line,areas){const out=[];for(let i=1;i<line.length;i++){const a=line[i-1],b=line[i],dx=b[0]-a[0],dy=b[1]-a[1],ts=[0,1];for(const poly of areas)for(const ring of poly)for(let j=1;j<ring.length;j++){const c=ring[j-1],d=ring[j],ex=d[0]-c[0],ey=d[1]-c[1],det=dx*ey-dy*ex;if(Math.abs(det)<1e-20)continue;const cx=c[0]-a[0],cy=c[1]-a[1],t=(cx*ey-cy*ex)/det,u=(cx*dy-cy*dx)/det;if(t>0&&t<1&&u>=0&&u<=1)ts.push(t);}ts.sort((x,y)=>x-y);for(let j=1;j<ts.length;j++){const lo=ts[j-1],hi=ts[j];if(hi-lo<1e-10)continue;const at=t=>[a[0]+dx*t,a[1]+dy*t];if(!areas.some(poly=>pointInPolygon(at((lo+hi)/2),poly)))out.push([at(lo),at(hi)]);}}return out;}
 
-export function renderPlan(canvas,{features=[],bounds,side,mode='general',layers={},transparent=false,isolated=null,metadata=true,downloadedAt,estimatedWidths=false,clip=globalThis.polygonClipping,onGeometryError=error=>console.warn('Plan area union failed; original geometry retained',error)}={}){const c=canvas.getContext('2d'),W=canvas.width,H=canvas.height,m=50,size=Math.min(W-100,H-260),k=size/side;c.clearRect(0,0,W,H);if(!transparent){c.fillStyle='#fff';c.fillRect(0,0,W,H);}if(!bounds)return;const xy=p=>[m+(p[0]-bounds[1])/(bounds[3]-bounds[1])*size,m+size-(p[1]-bounds[0])/(bounds[2]-bounds[0])*size];c.save();c.beginPath();c.rect(m,m,size,size);c.clip();c.lineJoin='round';c.lineCap='round';
+export function renderPlan(canvas,{features=[],bounds,side,mode='general',layers={},transparent=false,isolated=null,metadata=true,downloadedAt,estimatedWidths=true,clip=globalThis.polygonClipping,onGeometryError=error=>console.warn('Plan area union failed; original geometry retained',error)}={}){const c=canvas.getContext('2d'),W=canvas.width,H=canvas.height,m=50,size=Math.min(W-100,H-260),k=size/side;c.clearRect(0,0,W,H);if(!transparent){c.fillStyle='#fff';c.fillRect(0,0,W,H);}if(!bounds)return;const xy=p=>[m+(p[0]-bounds[1])/(bounds[3]-bounds[1])*size,m+size-(p[1]-bounds[0])/(bounds[2]-bounds[0])*size];c.save();c.beginPath();c.rect(m,m,size,size);c.clip();c.lineJoin='round';c.lineCap='round';
 const roadQueue=[];
 function flushRoads(){
  const trace=r=>{c.beginPath();for(const ring of r.poly||[r.line]){ring.forEach((v,i)=>{const q=xy(v);i?c.lineTo(...q):c.moveTo(...q)});if(r.poly)c.closePath();}};
  const interior=r=>r.base?'#fff':r.color==='#c48b51'?'#eedbc8':'#dbcde4';
  const levels=[...new Set(roadQueue.map(r=>r.level))].sort((a,b)=>a-b);
- for(const level of levels){const merged=mergeRoadAreas(roadQueue.filter(r=>r.level===level),clip,onGeometryError);const group=merged.flatMap(r=>r.poly?[r]:outsideRoadAreas(r.line,merged.filter(a=>a.poly&&a.key===r.key).map(a=>a.poly)).map(line=>({...r,line})));
- // All boundaries first. Known road areas then mask inferred interior axes on the same level.
- for(const r of group.filter(r=>!r.thin)){trace(r);c.globalAlpha=1;c.strokeStyle=r.color;c.lineWidth=r.poly?2:Math.max(1.5,r.width+2);if(r.poly){c.fillStyle=interior(r);c.fill('evenodd');}c.stroke();}
- for(const r of group.filter(r=>!r.poly&&!r.thin)){trace(r);c.lineWidth=Math.max(.5,r.width);c.strokeStyle=interior(r);c.stroke();}
- for(const r of group.filter(r=>r.poly)){trace(r);c.fillStyle=interior(r);c.fill('evenodd');}
- for(const r of group.filter(r=>r.thin)){trace(r);c.strokeStyle=r.color;c.lineWidth=1.2;c.stroke();}
+ for(const level of levels){
+ const unxy=q=>[bounds[1]+(q[0]-m)/size*(bounds[3]-bounds[1]),bounds[0]+(m+size-q[1])/size*(bounds[2]-bounds[0])];
+ const surfaces=[];
+ for(const r of roadQueue.filter(r=>r.level===level)){if(r.poly||r.thin||!clip?.union){surfaces.push(r);continue;}
+ for(const poly of ribbonPolygons(r.line.map(xy),r.width,[m,m,m+size,m+size]))surfaces.push({...r,line:undefined,poly:poly.map(ring=>ring.map(unxy))});}
+ const group=mergeRoadAreas(surfaces,clip,onGeometryError);
+ for(const r of group){trace(r);c.globalAlpha=1;c.strokeStyle=r.color;
+ if(r.poly){c.fillStyle=interior(r);c.fill('evenodd');c.lineWidth=2;c.stroke();}
+ else{c.lineWidth=r.thin?1.2:r.width+2;c.stroke();if(!r.thin){c.lineWidth=r.width;c.strokeStyle=interior(r);c.stroke();}}
+ }
  }roadQueue.length=0;c.globalAlpha=1;
 }
 
@@ -47,4 +52,3 @@ if(active.includes('labels')){const occupied=[];c.font='16px Arial';c.fillStyle=
 c.restore();if(metadata){c.fillStyle='#17232c';c.font='bold 25px Arial';c.fillText(isolated?(isolated==='base'?'Генеральный план':LAYERS[isolated]?.name||'Шварцплан'):mode==='black'?'Шварцплан':'Генеральный план · схема OSM',m,m+size+45);c.font='18px Arial';c.fillText('N ↑',m+size-45,35);c.fillRect(m,25,size/5,3);c.fillText(Math.round(side/5)+' м',m+size/5+15,35);c.fillText('© OpenStreetMap contributors · ODbL · '+String(downloadedAt||new Date().toISOString()).slice(0,10),m,m+size+80);const names=active.map(x=>LAYERS[x]?.name||(x==='black'?'Шварцплан':x));c.font='15px Arial';c.fillText('Слои: '+(names.slice(0,3).join(' · ')||'чёрно-белая основа'),m,m+size+110);if(names.length>3)c.fillText(names.slice(3).join(' · '),m,m+size+132);c.font='15px Arial';c.fillText('Схема по открытым данным, не геодезическая съёмка. Ширина дорог и символы деревьев могут быть условными.',m,m+size+158);c.fillText('Функциональное использование не является юридическим зонированием.',m,m+size+180);c.fillText('Центр: '+((bounds[0]+bounds[2])/2).toFixed(6)+', '+((bounds[1]+bounds[3])/2).toFixed(6),m,m+size+202);}}
 
 export const layerDefs=[{key:"base",name:"Генеральный план",description:"Чёрно-белая основа",color:"#20262b"},{key:"black",name:"Шварцплан",description:"Пятна застройки",color:"#15191c"},...Object.entries(LAYERS).map(([key,v])=>({key,...v}))];
-
