@@ -31,7 +31,6 @@ let warned=false;const originals=[rec(square(0,0,1,1)),rec(square(1,0,2,1))];ass
 
 const {outsideRoadAreas}=await import('./dist/plan-renderer.mjs');const segments=outsideRoadAreas([[0,1],[2,1]],[area.geometry.coordinates]);assert.deepEqual(segments,[[[0,1],[.4,1]],[[.8,1],[1.2,1]],[[1.6,1],[2,1]]]);
 assert.equal(matchesLayer({properties:{leisure:'park'},geometry:{type:'Polygon',coordinates:square(0,0,1,1)}},'green'),false);assert.ok(matchesLayer({properties:{leisure:'park',landuse:'grass'},geometry:{type:'Polygon',coordinates:square(0,0,1,1)}},'green'));
-junctionStrokes.length=0;renderPlan({width:1600,height:1800,getContext:()=>junctionCtx},{bounds:[0,0,2,2],side:200,metadata:false,features:[road([[0,1],[1,1]])]});assert.equal(junctionStrokes.length,1);assert.equal(junctionStrokes[0].width,1.2);console.log('Unknown widths are single lines; area clipping preserves islands; park boundary is not grass');
+junctionStrokes.length=0;renderPlan({width:1600,height:1800,getContext:()=>junctionCtx},{bounds:[0,0,2,2],side:200,estimatedWidths:false,metadata:false,features:[road([[0,1],[1,1]])]});assert.equal(junctionStrokes.length,1);assert.equal(junctionStrokes[0].width,1.2);console.log('Unknown widths are single lines; area clipping preserves islands; park boundary is not grass');
 
 junctionStrokes.length=0;renderPlan({width:1600,height:1800,getContext:()=>junctionCtx},{bounds:[0,0,2,2],side:200,metadata:false,features:[road([[0,1],[1,1]],{width:'10 ft'})]});assert.equal(junctionStrokes.length,2);assert.ok(Math.abs(junctionStrokes[1].width-3.048*7.5)<1e-8);console.log('Explicit imperial width retains measured-width symbol');
-
