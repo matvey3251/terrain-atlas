@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {ribbonPolygons} from './dist/plan-road-geometry.mjs';
+import {mergeRoadAreas,renderPlan} from './dist/plan-renderer.mjs';
+const clip=createRequire(import.meta.url)('./dist/polygon-clipping.umd.min.js');
+const ribbon=line=>ribbonPolygons(line,10,[-100,-100,100,100]).map(poly=>({poly,key:'pedestrian',level:0,color:'black',base:true}));
+const x=[...ribbon([[-40,0],[40,0]]),...ribbon([[0,-40],[0,40]])];
+assert.equal(mergeRoadAreas(x,clip).length,1,'X intersection is one surface');
+assert.equal(mergeRoadAreas([...ribbon([[-40,0],[40,0]]),...ribbon([[0,0],[0,40]])],clip).length,1,'T intersection is one surface');
+assert.equal(mergeRoadAreas([...ribbon([[-40,0],[40,0]]),...ribbon([[0,-40],[0,40]]).map(r=>({...r,key:'roads'}))],clip).length,2,'Categories stay separate');
+assert.equal(mergeRoadAreas([...ribbon([[-40,0],[40,0]]),...ribbon([[0,-40],[0,40]]).map(r=>({...r,level:1}))],clip).length,2,'Levels stay separate');
+let strokes=0;const ctx=new Proxy({stroke(){strokes++;}},{get:(o,k)=>k in o?o[k]:()=>{},set:(o,k,v)=>(o[k]=v,true)});
+renderPlan({width:1600,height:1800,getContext:()=>ctx},{bounds:[0,0,2,2],side:200,metadata:false,clip,features:[[[.2,1],[1.8,1]],[[1,.2],[1,1.8]]].map(coordinates=>({properties:{highway:'footway'},geometry:{type:'LineString',coordinates}}))});
+assert.equal(strokes,1,'Renderer strokes only one merged outline');
+console.log('5 road union checks passed');
