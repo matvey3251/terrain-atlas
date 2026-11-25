@@ -38,8 +38,9 @@ function flushRoads(){
  const group=mergeRoadAreas(surfaces,clip,onGeometryError);
  for(const r of group){trace(r);c.globalAlpha=1;c.strokeStyle=r.color;
  if(r.poly){c.fillStyle=interior(r);c.fill('evenodd');c.lineWidth=2;c.stroke();}
- else{c.lineWidth=r.thin?1.2:r.width+2;c.stroke();if(!r.thin){c.lineWidth=r.width;c.strokeStyle=interior(r);c.stroke();}}
+ else{c.lineWidth=r.thin?1.2:r.width+2;c.stroke();}
  }
+ for(const r of group.filter(r=>!r.poly&&!r.thin)){trace(r);c.lineWidth=r.width;c.strokeStyle=interior(r);c.stroke();}
  }roadQueue.length=0;c.globalAlpha=1;
 }
 
