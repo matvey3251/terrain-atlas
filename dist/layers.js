@@ -1,7 +1,7 @@
 import {auditPlan} from './plan-audit.mjs';
 import {georeferenceFiles} from './export-georef.mjs';
-import {renderPlan,layerDefs,filterLayer} from './plan-renderer.mjs?v=20261123-clean';
-import {readProject,readPlanPreferences} from './project-store.mjs?v=20261123-clean';
+import {renderPlan,layerDefs,filterLayer} from './plan-renderer.mjs?v=20261125-union';
+import {readProject,readPlanPreferences} from './project-store.mjs?v=20261125-union';
 import {makeZip} from './zip-store.mjs';
 const $=id=>document.getElementById(id);let project=null,previewKey='base',busy=false;
 const canvas=document.createElement('canvas');canvas.width=1600;canvas.height=1800;
@@ -22,4 +22,3 @@ $('downloadComposite').onclick=()=>action(async()=>{renderPlan(canvas,{...projec
 $('downloadZip').onclick=()=>action(async()=>{const keys=chosen(),files=[];for(let i=0;i<keys.length;i++){const key=keys[i];$('exportStatus').textContent='Подготовка '+(i+1)+' / '+keys.length+': '+layerDefs.find(d=>d.key===key).name;await new Promise(r=>setTimeout(r,0));draw(canvas,key);files.push({name:'png/atlas-'+key+'.png',data:new Uint8Array(await (await pngBlob(canvas)).arrayBuffer())});files.push(...georeferenceFiles('png/atlas-'+key,project.bounds));files.push({name:'geojson/atlas-'+key+'.geojson',data:JSON.stringify(geojson(key),null,2)});}files.push({name:'quality-report.json',data:JSON.stringify(auditPlan(project.features,project.bounds),null,2)});files.push({name:'README.json',data:JSON.stringify({title:'АТЛАС — отдельные слои',source:'© OpenStreetMap contributors',license:'ODbL https://www.openstreetmap.org/copyright',downloadedAt:project.downloadedAt,selectionBounds:project.bounds,boundsOrder:'south,west,north,east',png:{width:1600,height:1800,aligned:true,georeferenced:true,crs:"EPSG:4326",worldFile:".pgw; pixel centres; full image including margins",crsSidecars:".prj and .png.aux.xml",transparent:$('exportTransparent').checked,metadata:$('exportMetadata').checked},geojson:'WGS84 longitude,latitude; original uncut feature geometry',layers:keys,compositeSettings:readPlanPreferences(),notes:['Планы схематычны, не являются геодезической съёмкой.','Распакуйте PNG, PGW, PRJ и AUX.XML в одну папку. В QGIS используйте EPSG:4326. Единицы координат — градусы; для метрических измерений перепроецируйте в подходящую местную CRS. Масштаб при печати PNG не фиксирован.','Функциональное использование по OSM, не юридические зоны ПЗЗ.','Ширины линий и символы деревьев могут быть условными.']},null,2)});save(makeZip(files),'atlas-layers.zip');$('exportStatus').textContent='Готово: '+keys.length+' отдельных PNG, '+keys.length+' GeoJSON и описание источников в ZIP.';});
 $('downloadAudit').onclick=()=>action(async()=>{await new Promise(r=>setTimeout(r,0));save(new Blob([JSON.stringify(auditPlan(project.features,project.bounds),null,2)],{type:'application/json'}),'atlas-quality-report.json');});
 load();
-
