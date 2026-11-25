@@ -1,6 +1,6 @@
 import {sceneManifest} from './scene-manifest.mjs';
-import {renderPlan} from './plan-renderer.mjs?v=20261123-clean';
-import {saveProject,readProject,readPlanPreferences,writePlanPreferences} from './project-store.mjs?v=20261123-clean';
+import {renderPlan} from './plan-renderer.mjs?v=20261125-union';
+import {saveProject,readProject,readPlanPreferences,writePlanPreferences} from './project-store.mjs?v=20261125-union';
 import {smoothUrbanGrid} from './urban-baseline.mjs';
 import {createUrbanTerrainAsync} from './urban-terrain.mjs?v=20261116-grading';
 import {photoHeight,photoReferences} from './photo-scale.mjs';
@@ -94,4 +94,3 @@ restoreSavedProject();if(location.hash==='#plans')document.querySelector('[data-
 
 
 $('sceneManifest').onclick=()=>{if(!lastSceneManifest||buildingScene)return alert('Сначала дождитесь построения 3D-модели');save(new Blob([JSON.stringify(lastSceneManifest,null,2)],{type:'application/json'}),'atlas-scene-manifest.json');};
-
